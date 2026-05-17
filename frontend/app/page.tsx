@@ -8,11 +8,20 @@ export default function Home() {
   const [message, setMessage] = useState('');
   const [status, setStatus] = useState('');
 
+  const [chatMessages, setChatMessages] = useState([
+    {
+      sender: 'bot',
+      text: 'Hi! I am your AI assistant. How can I help you today?',
+    },
+  ]);
+
+  const [chatInput, setChatInput] = useState('');
+
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setStatus('Sending...');
 
-    const response = await fetch('http://localhost:5000/contact', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/contact`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, email, message }),
@@ -27,6 +36,44 @@ export default function Home() {
       setStatus('Something went wrong. Please try again.');
     }
   }
+
+async function handleChatSubmit(event: React.FormEvent<HTMLFormElement>) {
+  event.preventDefault();
+
+  if (!chatInput.trim()) return;
+
+  const userMessage = chatInput;
+
+  setChatMessages((prev) => [
+    ...prev,
+    { sender: 'user', text: userMessage },
+  ]);
+
+  setChatInput('');
+
+  try {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/chatbot`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: userMessage }),
+    });
+
+    const data = await response.json();
+
+    setChatMessages((prev) => [
+      ...prev,
+      { sender: 'bot', text: data.reply },
+    ]);
+  } catch {
+    setChatMessages((prev) => [
+      ...prev,
+      {
+        sender: 'bot',
+        text: 'Sorry, the chatbot is currently unavailable. Please try again later.',
+      },
+    ]);
+  }
+}
 
   return (
     <main className="min-h-screen overflow-hidden bg-[#050816] text-white">
@@ -109,103 +156,50 @@ export default function Home() {
                 </div>
 
                 <div className="space-y-4">
-                  <div className="rounded-2xl bg-cyan-400/10 p-4">
-                    <p className="text-sm text-cyan-300">AI Assistant</p>
-                    <p className="mt-2 text-white">
-                      Hello! I can help your customers instantly.
-                    </p>
+                  <div className="max-h-80 space-y-4 overflow-y-auto pr-2">
+                    {chatMessages.map((item, index) => (
+                      <div
+                        key={index}
+                        className={
+                          item.sender === 'bot'
+                            ? 'rounded-2xl bg-cyan-400/10 p-4'
+                            : 'ml-auto rounded-2xl bg-purple-400/10 p-4'
+                        }
+                      >
+                        <p
+                          className={
+                            item.sender === 'bot'
+                              ? 'text-sm text-cyan-300'
+                              : 'text-sm text-purple-300'
+                          }
+                        >
+                          {item.sender === 'bot' ? 'AI Assistant' : 'You'}
+                        </p>
+
+                        <p className="mt-2 text-white">{item.text}</p>
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="ml-auto rounded-2xl bg-purple-400/10 p-4">
-                    <p className="text-sm text-purple-300">Customer</p>
-                    <p className="mt-2 text-white">
-                      Can you collect leads and answer questions?
-                    </p>
-                  </div>
+                  <form onSubmit={handleChatSubmit} className="flex gap-3">
+                    <input
+                      className="flex-1 rounded-2xl border border-white/10 bg-white/10 p-3 text-white outline-none placeholder:text-slate-400 focus:border-cyan-400"
+                      placeholder="Ask something..."
+                      value={chatInput}
+                      onChange={(event) => setChatInput(event.target.value)}
+                    />
 
-                  <div className="rounded-2xl bg-cyan-400/10 p-4">
-                    <p className="text-sm text-cyan-300">AI Assistant</p>
-                    <p className="mt-2 text-white">
-                      Yes. I can capture names, emails, and project details.
-                    </p>
-                  </div>
+                    <button
+                      className="rounded-2xl bg-cyan-400 px-5 font-bold text-slate-950"
+                      type="submit"
+                    >
+                      Send
+                    </button>
+                  </form>
                 </div>
               </div>
             </div>
           </div>
-        </div>
-      </section>
-
-      <section id="services" className="px-6 py-24 lg:px-20">
-        <div className="mx-auto max-w-7xl">
-          <h2 className="text-center text-4xl font-bold md:text-5xl">
-            Premium features for modern businesses
-          </h2>
-
-          <div className="mt-12 grid gap-6 md:grid-cols-3">
-            {[
-              ['AI Chatbot', 'Give customers instant answers 24/7.'],
-              ['Lead Capture', 'Save contact messages directly to database.'],
-              ['Admin Dashboard', 'Manage business messages securely.'],
-            ].map(([title, text]) => (
-              <div
-                key={title}
-                className="rounded-3xl border border-white/10 bg-white/5 p-8 transition hover:-translate-y-2 hover:border-cyan-400/50"
-              >
-                <div className="mb-6 h-12 w-12 rounded-2xl bg-gradient-to-r from-cyan-400 to-purple-500" />
-                <h3 className="text-2xl font-bold">{title}</h3>
-                <p className="mt-4 text-slate-400">{text}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      <section id="contact" className="px-6 pb-24 lg:px-20">
-        <div className="mx-auto grid max-w-7xl gap-10 rounded-3xl border border-white/10 bg-white/5 p-8 backdrop-blur md:grid-cols-2 md:p-12">
-          <div>
-            <h2 className="text-4xl font-bold">Let’s build your AI website</h2>
-            <p className="mt-4 text-slate-300">
-              Send your details and our team will contact you soon.
-            </p>
-          </div>
-
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-white/10 p-4 text-white outline-none placeholder:text-slate-400 focus:border-cyan-400"
-              placeholder="Your name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-              required
-            />
-
-            <input
-              className="w-full rounded-2xl border border-white/10 bg-white/10 p-4 text-white outline-none placeholder:text-slate-400 focus:border-cyan-400"
-              placeholder="Your email"
-              type="email"
-              value={email}
-              onChange={(event) => setEmail(event.target.value)}
-              required
-            />
-
-            <textarea
-              className="w-full rounded-2xl border border-white/10 bg-white/10 p-4 text-white outline-none placeholder:text-slate-400 focus:border-cyan-400"
-              placeholder="Tell us about your project"
-              rows={5}
-              value={message}
-              onChange={(event) => setMessage(event.target.value)}
-              required
-            />
-
-            <button
-              className="w-full rounded-2xl bg-gradient-to-r from-cyan-400 to-purple-500 px-6 py-4 font-bold text-white shadow-lg shadow-cyan-500/20 transition hover:scale-[1.02]"
-              type="submit"
-            >
-              Send Message
-            </button>
-
-            {status && <p className="text-sm text-cyan-300">{status}</p>}
-          </form>
         </div>
       </section>
     </main>
