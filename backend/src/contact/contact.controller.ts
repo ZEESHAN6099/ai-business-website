@@ -1,4 +1,5 @@
-import { Body, Controller, Get, Post } from '@nestjs/common';
+import { Body, Controller, Get, Post, UseGuards } from '@nestjs/common';
+import { AuthGuard } from '@nestjs/passport';
 import { ContactService } from './contact.service';
 
 @Controller('contact')
@@ -12,6 +13,7 @@ export class ContactController {
     return this.contactService.createMessage(body);
   }
 
+  @UseGuards(AuthGuard('jwt'))
   @Get()
   getAllMessages() {
     return this.contactService.getAllMessages();
